@@ -85,10 +85,10 @@ func SetupVethWithNames(lxcIfName, tmpIfName string, mtu int, ep *models.Endpoin
 	veth := &netlink.Veth{
 		LinkAttrs: netlink.LinkAttrs{
 			Name:         lxcIfName,
-			HardwareAddr: net.HardwareAddr(epHostMAC),
+			HardwareAddr: net.HardwareAddr(epLXCMAC),
 		},
 		PeerName:         tmpIfName,
-		PeerHardwareAddr: net.HardwareAddr(epLXCMAC),
+		PeerHardwareAddr: net.HardwareAddr(epHostMAC),
 	}
 
 	if err := netlink.LinkAdd(veth); err != nil {
