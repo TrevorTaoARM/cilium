@@ -30,6 +30,7 @@ import (
 	"github.com/cilium/cilium/api/v1/server/restapi"
 	enitypes "github.com/cilium/cilium/pkg/aws/eni/types"
 	"github.com/cilium/cilium/pkg/bpf"
+	"github.com/cilium/cilium/pkg/cidr"
 	"github.com/cilium/cilium/pkg/cleanup"
 	"github.com/cilium/cilium/pkg/common"
 	"github.com/cilium/cilium/pkg/components"
@@ -606,6 +607,9 @@ func init() {
 
 	flags.String(option.IPv4NativeRoutingCIDR, "", "Allows to explicitly specify the CIDR for native routing. This value corresponds to the configured cluster-cidr.")
 	option.BindEnv(option.IPv4NativeRoutingCIDR)
+
+	flags.String(option.TunnelEndpointIPv4CIDR, "", "Allows to explicitly specify the CIDR for the tunnel endpoint IP which the user desires.")
+	option.BindEnv(option.TunnelEndpointIPv4CIDR)
 
 	flags.String(option.LibDir, defaults.LibraryPath, "Directory path to store runtime build environment")
 	option.BindEnv(option.LibDir)
@@ -1308,6 +1312,17 @@ func initEnv(cmd *cobra.Command) {
 			log.WithField(logfields.IPAddr, option.Config.IPv4NodeAddr).Fatal("Invalid IPv4 node address")
 		} else {
 			node.SetIPv4(ip)
+		}
+	}
+
+	// Setting node endpoint tunnel code here
+	tunnelEndpointIPv4CIDR := option.Config.GetTunnelEndpointIPv4CIDR()
+	if tunnelEndpointIPv4CIDR != nil && option.Config.Tunnel != option.TunnelDisabled && option.Config.EnableIPv4 {
+		if _, intfIP, _, err := cidr.DetectCIDRByCIDR(tunnelEndpointIPv4CIDR, 4); err != nil {
+			log.WithField(logfields.CIDR, tunnelEndpointIPv4CIDR.IPNet.String()).Fatal("Can't detect the cidr for an actual interface IP")
+		} else {
+			// Now set the node tunnel address to the deteced IP
+			node.SetTunnelEndpointIPv4(intfIP)
 		}
 	}
 
